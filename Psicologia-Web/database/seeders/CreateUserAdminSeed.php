@@ -25,24 +25,24 @@ class CreateUserAdminSeed extends Seeder
                 'password' => Hash::make('123')
             ],
             [
-                'name' => 'psicologo 2',
+                'name' => 'psicologo 1',
                 'rules_id' => 2,
                 'user_id' => null,
-                'email' => 'psicologo@admin',
+                'email' => 'psi1@psi',
                 'password' => Hash::make('123')
             ],
             [
-                'name' => 'psicologo 3',
+                'name' => 'psicologo 2',
                 'rules_id' => 2,
                 'user_id' => null,
-                'email' => 'psicologo2@admin',
+                'email' => 'psi2@psi',
                 'password' => Hash::make('123')
             ],
             [
                 'name' => 'atendente',
                 'rules_id' => 3,
                 'user_id' => null,
-                'email' => 'atendente@admin',
+                'email' => 'atendente@atendente',
                 'password' => Hash::make('123')
             ]
         ]);

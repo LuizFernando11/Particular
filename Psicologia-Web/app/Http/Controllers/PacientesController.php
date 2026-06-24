@@ -118,6 +118,18 @@ class PacientesController extends Controller
             $data['user_id'] = $psicologoId;
         }
 
+        if (!empty($data['planos_id'])) {
+            $planoValido = Planos::where('id', $data['planos_id'])
+                ->where('user_id', $data['user_id'])
+                ->exists();
+
+            if (!$planoValido) {
+                return back()
+                    ->withErrors(['planos_id' => 'O plano selecionado nao pertence ao psicologo informado.'])
+                    ->withInput();
+            }
+        }
+
         $data['password'] = Hash::make($request->input('password'));
 
         User::create($data);
@@ -211,6 +223,18 @@ class PacientesController extends Controller
             }
 
             $data['user_id'] = $psicologoId;
+        }
+
+        if (!empty($data['planos_id'])) {
+            $planoValido = Planos::where('id', $data['planos_id'])
+                ->where('user_id', $data['user_id'])
+                ->exists();
+
+            if (!$planoValido) {
+                return back()
+                    ->withErrors(['planos_id' => 'O plano selecionado nao pertence ao psicologo informado.'])
+                    ->withInput();
+            }
         }
 
         if (!empty($request->input('password'))) {

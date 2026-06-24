@@ -114,7 +114,7 @@
         <x-field label="Plano" for="planos_id">
             <select id="planos_id" name="planos_id" class="form-input @error('planos_id') is-invalid @enderror">
                 @foreach ($planos as $index => $plano)
-                    <option value="{{ $plano->id }}" {{ (int) old('planos_id', $index === 0 ? $plano->id : null) === $plano->id ? 'selected' : '' }}>
+                    <option value="{{ $plano->id }}" data-user-id="{{ $plano->user_id }}" {{ (int) old('planos_id', $index === 0 ? $plano->id : null) === $plano->id ? 'selected' : '' }}>
                         {{ $plano->nome }}
                     </option>
                 @endforeach
@@ -129,5 +129,61 @@
         </div>
     </form>
 </x-section-card>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const userSelect = document.getElementById('user_id');
+    const planoSelect = document.getElementById('planos_id');
+
+    if (!planoSelect || !userSelect) {
+        return;
+    }
+
+    const allPlanos = Array.from(planoSelect.options).map(function (option) {
+        return {
+            value: option.value,
+            text: option.text,
+            userId: option.dataset.userId || '',
+            selected: option.selected,
+        };
+    });
+
+    function filtrarPlanosPorPsicologo() {
+        const psicologoId = userSelect.value;
+        const valorAtual = planoSelect.value;
+        const planosFiltrados = allPlanos.filter(function (plano) {
+            return plano.userId === psicologoId;
+        });
+
+        planoSelect.innerHTML = '';
+
+        planosFiltrados.forEach(function (plano) {
+            const option = document.createElement('option');
+            option.value = plano.value;
+            option.textContent = plano.text;
+            option.dataset.userId = plano.userId;
+            planoSelect.appendChild(option);
+        });
+
+        if (planosFiltrados.length === 0) {
+            planoSelect.selectedIndex = -1;
+            return;
+        }
+
+        const existeValorAtual = planosFiltrados.some(function (plano) {
+            return plano.value === valorAtual;
+        });
+
+        if (existeValorAtual) {
+            planoSelect.value = valorAtual;
+        } else {
+            planoSelect.value = planosFiltrados[0].value;
+        }
+    }
+
+    userSelect.addEventListener('change', filtrarPlanosPorPsicologo);
+    filtrarPlanosPorPsicologo();
+});
+</script>
 
 @endsection
