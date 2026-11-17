@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Clientes;
 use App\Models\Pagamentos;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class PagamentosController extends Controller
@@ -13,9 +13,24 @@ class PagamentosController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
-        //
+        if (auth()->user()->rules_id === 4) {
+            abort(403, 'Acesso não autorizado.');
+        }
+
+        $perPage = $this->perPage($request);
+        $pagamentos = Pagamentos::whereHas('paciente', function ($query) {
+            $query->where('rules_id', 4)
+                ->when(auth()->user()->rules_id === 2, function ($query) {
+                    $query->where('user_id', auth()->id());
+                });
+        })
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage)
+            ->withQueryString();
+
+        return view('pagamentos.index', compact('pagamentos'));
     }
 
     /**
@@ -25,13 +40,19 @@ class PagamentosController extends Controller
      */
     public function create($id)
     {
+        if (auth()->user()->rules_id === 4) {
+            abort(403, 'Acesso não autorizado.');
+        }
 
-        $cliente = Clientes::where('id', $id)
-        ->where('users_id', auth()->id())
-        ->firstOrFail();
+        $paciente = User::where('id', $id)
+            ->where('rules_id', 4)
+            ->firstOrFail();
 
-        //$cliente = Clientes::findOrFail($id);
-        return view('pagamentos.create', compact('cliente'));
+        if (auth()->user()->rules_id === 2 && $paciente->user_id !== auth()->id()) {
+            abort(403, 'Acesso não autorizado.');
+        }
+
+        return view('pagamentos.create', compact('paciente'));
     }
 
     /**
@@ -42,17 +63,25 @@ class PagamentosController extends Controller
      */
     public function store(Request $request)
     {
+        if (auth()->user()->rules_id === 4) {
+            abort(403, 'Acesso não autorizado.');
+        }
+
         $data = $request->all();
+        $paciente = User::where('id', $data['user_id'])
+            ->where('rules_id', 4)
+            ->firstOrFail();
+
+        if (auth()->user()->rules_id === 2 && $paciente->user_id !== auth()->id()) {
+            abort(403, 'Acesso não autorizado.');
+        }
 
         Pagamentos::create($data);
-        $cliente = Clientes::findOrFail($data['cliente_id']);
 
-        $cliente->saldo += $data['valor'];
-        $cliente->update($data);
+        $paciente->saldo += $data['valor'];
+        $paciente->save();
 
-        //$clientes = Clientes::all();
-        //return view("clientes.index", ['clientes' => $clientes]);
-        return redirect()->route('clientes.show', ['cliente' => $cliente]);
+        return redirect()->route('pacientes.show', ['paciente' => $paciente]);
     }
 
     /**
@@ -63,7 +92,19 @@ class PagamentosController extends Controller
      */
     public function show(Pagamentos $pagamentos)
     {
-        //
+        if (!$pagamentos->paciente || $pagamentos->paciente->rules_id !== 4) {
+            abort(404);
+        }
+
+        if (auth()->user()->rules_id === 2 && $pagamentos->paciente->user_id !== auth()->id()) {
+            abort(403, 'Acesso não autorizado.');
+        }
+
+        if (auth()->user()->rules_id === 4) {
+            abort(403, 'Acesso não autorizado.');
+        }
+
+        return view('pagamentos.show', ['pagamento' => $pagamentos]);
     }
 
     /**
@@ -74,7 +115,15 @@ class PagamentosController extends Controller
      */
     public function edit(Pagamentos $pagamento)
     {
-        if ($pagamento->cliente->users_id !== auth()->id()) {
+        if (auth()->user()->rules_id === 4) {
+            abort(403, 'Acesso não autorizado.');
+        }
+
+        if (!$pagamento->paciente || $pagamento->paciente->rules_id !== 4) {
+            abort(404);
+        }
+
+        if (auth()->user()->rules_id === 2 && $pagamento->paciente->user_id !== auth()->id()) {
             abort(403, 'Acesso não autorizado.');
         }
 
@@ -90,22 +139,34 @@ class PagamentosController extends Controller
      */
     public function update(Request $request, Pagamentos $pagamento)
     {
-        $data = $request->all();
-        $cliente = Clientes::findOrFail($data['cliente_id']);
+        if (auth()->user()->rules_id === 4) {
+            abort(403, 'Acesso não autorizado.');
+        }
 
-        $saldo = $cliente['saldo'];
+        if (!$pagamento->paciente || $pagamento->paciente->rules_id !== 4) {
+            abort(404);
+        }
+
+        if (auth()->user()->rules_id === 2 && $pagamento->paciente->user_id !== auth()->id()) {
+            abort(403, 'Acesso não autorizado.');
+        }
+
+        $data = $request->all();
+        $paciente = User::where('id', $data['user_id'])
+            ->where('rules_id', 4)
+            ->firstOrFail();
+
+        $saldo = $paciente['saldo'];
         $saldo -= $pagamento->valor;
         $saldo += $data['valor'];
 
         $pagamento->update($data);
 
-        $cliente->update([
+        $paciente->update([
             'saldo' => $saldo,
         ]);
 
-        $pagamentos = Pagamentos::where('cliente_id', $data['cliente_id'])->get();
-
-        return view('pagamentos.historico', ['cliente' => $cliente, 'pagamentos' => $pagamentos]);
+        return redirect()->route('pagamentos.historico', ['paciente' => $paciente]);
     }
 
     /**
@@ -116,20 +177,30 @@ class PagamentosController extends Controller
      */
     public function destroy(Pagamentos $pagamento)
     {
-        $cliente = Clientes::findOrFail($pagamento->cliente_id);
+        if (auth()->user()->rules_id === 4) {
+            abort(403, 'Acesso não autorizado.');
+        }
 
-        $saldo = $cliente->saldo;
+        if (!$pagamento->paciente || $pagamento->paciente->rules_id !== 4) {
+            abort(404);
+        }
+
+        if (auth()->user()->rules_id === 2 && $pagamento->paciente->user_id !== auth()->id()) {
+            abort(403, 'Acesso não autorizado.');
+        }
+
+        $paciente = User::findOrFail($pagamento->user_id);
+
+        $saldo = $paciente->saldo;
         $saldo -= $pagamento->valor;
 
-        $cliente->update([
+        $paciente->update([
             'saldo' => $saldo,
         ]);
 
         $pagamento->delete();
 
-        $pagamentos = Pagamentos::where('cliente_id', $cliente->id)->get();
-
-        return redirect()->route('pagamentos.historico', ['cliente' => $cliente, 'pagamentos' => $pagamentos]);
+        return redirect()->route('pagamentos.historico', ['paciente' => $paciente]);
     }
 
     /**
@@ -150,26 +221,39 @@ class PagamentosController extends Controller
      */
     public function buscar(Request $request)
     {
+        $perPage = $this->perPage($request);
         $nome = $request->input('nome');
 
-        $clientes = Clientes::where('users_id', auth()->id())->where('nome', 'like', '%' . $nome . '%')->get();
+        $query = User::where('rules_id', 4)->where('name', 'like', '%' . $nome . '%');
 
-        return view('pagamentos.busca', ['clientes' => $clientes]);
-    }
-
-    public function historico(Clientes $cliente)
-    {
-
-        if ($cliente->users_id !== auth()->id()) {
-            abort(403, 'Acesso não autorizado.');
-        }else{
-            $cliente = Clientes::where('id', $cliente->id)
-            ->where('users_id', auth()->id())
-            ->firstOrFail();
+        if (auth()->user()->rules_id === 2) {
+            $query->where('user_id', auth()->id());
         }
 
-        $pagamentos = Pagamentos::where('cliente_id', $cliente->id)->get();
-        return view('pagamentos.historico', ['cliente' => $cliente, 'pagamentos' => $pagamentos]);
+        $pacientes = $query->orderBy('name', 'asc')
+            ->paginate($perPage)
+            ->appends(['nome' => $nome, 'per_page' => $perPage]);
+
+        return view('pagamentos.busca', ['pacientes' => $pacientes]);
     }
 
+    public function historico(Request $request, User $paciente)
+    {
+        if ($paciente->rules_id !== 4) {
+            abort(404);
+        }
+
+        if (auth()->user()->rules_id === 2 && $paciente->user_id !== auth()->id()) {
+            abort(403, 'Acesso não autorizado.');
+        } else if (auth()->user()->rules_id === 4) {
+            abort(403, 'Acesso não autorizado.');
+        }
+
+        $perPage = $this->perPage($request);
+        $pagamentos = Pagamentos::where('user_id', $paciente->id)
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage)
+            ->withQueryString();
+        return view('pagamentos.historico', ['paciente' => $paciente, 'pagamentos' => $pagamentos]);
+    }
 }

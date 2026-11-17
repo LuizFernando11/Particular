@@ -9,24 +9,25 @@
         </div>
 
         <ul class="navLogado-links">
-            <li><li>
+            <li>
                 <div class="menuBarLogado">
-                    <a href="{{route('logado')}}">Inicio</a>
+                    <a href="{{route('logado')}}">Início</a>
                 </div>
             </li>
+            @if (auth()->check() && auth()->user()->rules_id !== 4)
             <li>
                 <div class="dropdown">
-                    <a class="btn btn-secondary dropdown-toggle" href="{{route('clientes.index')}}" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <a class="btn btn-secondary dropdown-toggle" href="{{route('pacientes.index')}}" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         Pacientes
                     </a>
                     <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="{{route('clientes.index')}}">Lista</a></li>
-                        <li><a class="dropdown-item" href="{{route('clientes.create')}}">Novo</a></li>
-                        <li><a class="dropdown-item" href="{{route('clientes.pesquisar')}}">Buscar</a></li>
+                        <li><a class="dropdown-item" href="{{route('pacientes.index')}}">Lista</a></li>
+                        <li><a class="dropdown-item" href="{{route('pacientes.create')}}">Novo</a></li>
+                        <li><a class="dropdown-item" href="{{route('pacientes.pesquisar')}}">Buscar</a></li>
                         <hr>
-                        <li><a class="dropdown-item" href="{{route('clientes.ativo')}}">Atendimentos</a></li>
-                        <li><a class="dropdown-item" href="{{route('clientes.alta')}}">Alta</a></li>
-                        <li><a class="dropdown-item" href="{{route('clientes.inativo')}}">Desistencia</a></li>
+                        <li><a class="dropdown-item" href="{{route('pacientes.ativo')}}">Atendimentos</a></li>
+                        <li><a class="dropdown-item" href="{{route('pacientes.alta')}}">Alta</a></li>
+                        <li><a class="dropdown-item" href="{{route('pacientes.inativo')}}">Desistência</a></li>
                     </ul>
                 </div>
             </li>
@@ -61,6 +62,12 @@
                     </ul>
                 </div>
             </li>
+            @endif
+            <li>
+                <div class="menuBarLogado">
+                    <a href="{{route('atendimentos.agenda')}}">Agenda</a>
+                </div>
+            </li>
         </ul>
 
         <div class="actionsLogado">
@@ -70,7 +77,7 @@
                 <x-responsive-nav-link :href="route('logout')"
                     onclick="event.preventDefault();
                     this.closest('form').submit();">
-                    {{ __('Log Out') }}
+                    {{ __('Sair') }}
                 </x-responsive-nav-link>
             </form>
         </div>

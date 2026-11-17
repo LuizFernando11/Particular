@@ -12,10 +12,18 @@ class PlanosController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
-        $planos = Planos::where('users_id', auth()->id())
-            ->orderBy('nome', 'asc')->get();
+        if (auth()->user()->rules_id === 4) {
+            abort(403, 'Acesso não autorizado.');
+        }
+
+        $perPage = $this->perPage($request);
+
+        $planos = Planos::where('user_id', auth()->id())
+            ->orderBy('nome', 'asc')
+            ->paginate($perPage)
+            ->withQueryString();
 
         return view("planos.index", ['planos' => $planos]);
 
@@ -28,6 +36,10 @@ class PlanosController extends Controller
      */
     public function create()
     {
+        if (auth()->user()->rules_id === 4) {
+            abort(403, 'Acesso não autorizado.');
+        }
+
         return view('planos.create');
     }
 
@@ -39,15 +51,23 @@ class PlanosController extends Controller
      */
     public function store(Request $request)
     {
+        if (auth()->user()->rules_id === 4) {
+            abort(403, 'Acesso não autorizado.');
+        }
+
         $data = $request->all();
-        $data['users_id'] = auth()->id();
+        $data['user_id'] = auth()->id();
 
         Planos::create($data);
 
-        $planos = Planos::where('users_id', auth()->id())
-            ->orderBy('nome', 'asc')->get();
+        $perPage = $this->perPage($request);
 
-        return redirect()->route("planos.index", compact('planos'));
+        $planos = Planos::where('user_id', auth()->id())
+            ->orderBy('nome', 'asc')
+            ->paginate($perPage)
+            ->withQueryString();
+
+        return redirect()->route("planos.index");
     }
 
     /**
@@ -56,9 +76,17 @@ class PlanosController extends Controller
      * @param  \App\Models\Planos  $planos
      * @return \Illuminate\Http\Response
      */
-    public function show(Planos $planos)
+    public function show(Planos $plano)
     {
-        //
+        if (auth()->user()->rules_id === 4) {
+            abort(403, 'Acesso não autorizado.');
+        }
+
+        if ($plano->user_id !== auth()->id()) {
+            abort(403, 'Acesso não autorizado.');
+        }
+
+        return view('planos.show', compact('plano'));
     }
 
     /**
@@ -67,9 +95,17 @@ class PlanosController extends Controller
      * @param  \App\Models\Planos  $planos
      * @return \Illuminate\Http\Response
      */
-    public function edit(Planos $planos)
+    public function edit(Planos $plano)
     {
-        //
+        if (auth()->user()->rules_id === 4) {
+            abort(403, 'Acesso não autorizado.');
+        }
+
+        if ($plano->user_id !== auth()->id()) {
+            abort(403, 'Acesso não autorizado.');
+        }
+
+        return view('planos.edit', compact('plano'));
     }
 
     /**
@@ -79,9 +115,20 @@ class PlanosController extends Controller
      * @param  \App\Models\Planos  $planos
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, Planos $planos)
+    public function update(Request $request, Planos $plano)
     {
-        //
+        if (auth()->user()->rules_id === 4) {
+            abort(403, 'Acesso não autorizado.');
+        }
+
+        if ($plano->user_id !== auth()->id()) {
+            abort(403, 'Acesso não autorizado.');
+        }
+
+        $data = $request->all();
+        $plano->update($data);
+
+        return redirect()->route('planos.index');
     }
 
     /**
@@ -92,10 +139,14 @@ class PlanosController extends Controller
      */
     public function destroy(Planos $plano)
     {
+        if (auth()->user()->rules_id === 4) {
+            abort(403, 'Acesso não autorizado.');
+        }
+
         $plano->delete();
 
-        $planos = Planos::where('users_id', auth()->id())->orderBy('nome', 'asc')->get();
+        $planos = Planos::where('user_id', auth()->id())->orderBy('nome', 'asc')->get();
 
-        return redirect()->route("planos.index", compact('planos'));
+        return redirect()->route("planos.index");
     }
 }
